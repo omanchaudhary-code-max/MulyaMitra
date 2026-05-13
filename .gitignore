@@ -1,5 +1,14 @@
+# Environment
 .env
-venv
-logs
-__pycache__
-README.md
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Logs
+logs/
+*.log
+
+# macOS
+.DS_Store
