@@ -1,0 +1,60 @@
+name: Daily Daraz Price Crawl
+
+on:
+  schedule:
+    - cron: '45 20 * * *'
+  workflow_dispatch:
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Chrome
+        run: |
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt install ./google-chrome-stable_current_amd64.deb -y
+          google-chrome --version
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run crawler
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          MONGO_DB: ${{ secrets.MONGO_DB }}
+          DELAY_MIN: 4
+          DELAY_MAX: 10
+          MAX_PRODUCTS_PER_CATEGORY: 50
+          CATEGORIES: laptops,smartphones,televisions,headphones,shoes-men,shoes-women,tshirts-men,books,kitchen-appliances,cameras
+          PROJECT_END_DATE: 2026-07-30
+          LOG_LEVEL: INFO
+        run: |
+          python run_now.py
+
+      - name: Upload crawler log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawler-log-${{ github.run_number }}
+          path: logs/crawler.log
+          retention-days: 30
